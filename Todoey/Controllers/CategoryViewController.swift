@@ -8,13 +8,12 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class CategoryViewController: UITableViewController {
+class CategoryViewController: SwipeTableViewController{
 
     let realm = try! Realm()
     var categories: Results<Category>?
-    
-    var categoryArray = [Category]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,6 +34,7 @@ class CategoryViewController: UITableViewController {
             
             let newCategory = Category()
             newCategory.name = textField.text!
+            newCategory.color = UIColor.randomFlat.hexValue()
             
             self.save(category: newCategory)
         }
@@ -46,6 +46,22 @@ class CategoryViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
     
+    //MARK: - Delete data from swipe
+    override func updateModel(at indexPath: IndexPath) {
+        if let categoryForDeletion = self.categories?[indexPath.row]
+        {
+            do {
+                try self.realm.write {
+                    self.realm.delete(categoryForDeletion)
+                }
+            }
+            catch
+            {
+                print("Error deleting category, \(error)")
+            }
+        }
+    }
+    
     //MARK: - TableView DataSource Methods
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -53,8 +69,16 @@ class CategoryViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "categoryCell", for: indexPath)
-        cell.textLabel?.text = categories?[indexPath.row].name ?? "No categories added yet"
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        
+        if let category = categories?[indexPath.row]{
+            
+            cell.textLabel?.text = category.name
+            guard let categoryColor = UIColor(hexString: category.color) else {fatalError()}
+            
+            cell.backgroundColor = categoryColor
+            cell.textLabel?.textColor = ContrastColorOf(categoryColor, returnFlat: true)
+        }
         
         return cell
     }
